@@ -1,0 +1,288 @@
+﻿
+@{
+    Layout = "~/Views/Shared/_MyLayout.cshtml";
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>View2</title>
+    @*<link href="~/Content/vendor/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">*@
+    @*<link href="~/Content/vendor/datatables/dataTables.bootstrap4.css" rel="stylesheet">*@
+    @*<link href="~/Content/css/sb-admin.css" rel="stylesheet">*@
+    @*<link href="~/Content/dcalendar.picker.css" rel="stylesheet">*@
+    @*<link href="~/Content/jquery.dataTables.min.css" rel="stylesheet">*@
+
+
+    @*<script src="~/Content/jquery.min.js"></script>*@
+    @*<script src="~/Content/bootstrap.min.js"></script>*@
+    @*<script src="~/Content/JSonBuilder.js"></script>
+    <script src="~/Content/dcalendar.picker.js"></script>
+    <script src="~/Content/jquery.dataTables.min.js"></script>*@
+
+    <script>
+        var ACTION_IRL_FOR_SEARCH = "/Home/SearchData";
+        var ACTION_URL_FOR_ADD = "/Home/AddData";
+        var ACTION_URL_FOR_UPDATE = "/Home/UpdateData";
+        var ACTION_URL_FOR_DELETE = "/Home/DeleteData";
+
+        
+
+        $(function () {
+            //alert("do client document ready event! ");
+
+            //do some init here.
+            //将触发新增与修改的按钮隐藏。
+            $("#btnShowDialog").hide();
+
+            //将界面的日期控件初始化。
+            $('#cltDateTimeData').dcalendarpicker({
+                format: 'yyyy-mm-dd'
+            });
+            //
+
+            clt_get_data_event();
+
+        });
+
+        function clt_get_data_event() {
+            //alert("do clt_get_data_event! ");
+
+            var JBuilder = new JSonStringBuilder();
+            JBuilder.Begin();
+            JBuilder.End();
+            var JSonStr = JBuilder.toString();
+
+            ajax_call_action(ACTION_IRL_FOR_SEARCH, JSonStr, clt_bind_gird_event);
+        }
+
+        function clt_model_submit_event() {
+            var cltRecordKey = $("#cltRecordKey").val();
+            var cltIntegerData = $("#cltIntegerData").val();
+            var cltStringData = $("#cltStringData").val();
+            var cltFloatData = $("#cltFloatData").val();
+            var cltDateTimeData = $("#cltDateTimeData").val();
+            var cltDialogFlag = $("#cltDialogFlag").val();
+
+            var JBuilder = new JSonStringBuilder();
+            JBuilder.Begin();
+            JBuilder.Add("RecordKey", cltRecordKey);
+            JBuilder.Add("para1", cltIntegerData);
+            JBuilder.Add("para2", cltStringData);
+            JBuilder.Add("para3", cltFloatData);
+            JBuilder.Add("para4", cltDateTimeData);
+            JBuilder.End();
+
+            var JSonStr = JBuilder.toString();
+
+            var url;
+
+            if (cltDialogFlag == "EDIT") { url = ACTION_URL_FOR_UPDATE; }
+            else { url = ACTION_URL_FOR_ADD; }
+
+            ajax_call_action(url, JSonStr, clt_get_data_event);
+
+            clt_dialog_clear();
+        }
+
+        function clt_dialog_clear() {
+            $("#cltRecordKey").val("");
+            $("#cltIntegerData").val("");
+            $("#cltStringData").val("");
+            $("#cltFloatData").val("");
+            $("#cltDateTimeData").val("");
+            $("#cltDialogFlag").val("");
+        }
+
+        function clt_add_data_event() {
+            //alert("do client add data event!");
+            clt_dialog_clear();
+            $("#cltDialogFlag").val("ADD");
+            $("#btnShowDialog").click();
+        }
+
+        function clt_edit_data_event(row_data_collection_str) {
+            //alert("do client edit data event! record key is:" + record_key);
+
+            var JSonStr = JSON.stringify(row_data_collection_str);
+            var DataObject = JSON.parse(JSonStr);
+
+            $("#cltIntegerData").val(DataObject.IntegerData);
+            $("#cltStringData").val(DataObject.StringData);
+            $("#cltFloatData").val(DataObject.FloatData);
+            $("#cltDateTimeData").val(DataObject.DateTimeData);
+
+            $("#cltRecordKey").val(DataObject.RecordKey);
+            $("#cltDialogFlag").val("EDIT");
+            $("#btnShowDialog").click();
+        }
+
+        function clt_delete_data_event(record_key) {
+            //alert("do client delete data event! record key is:" + record_key);
+
+            var JBuilder = new JSonStringBuilder();
+            JBuilder.Begin();
+            JBuilder.Add("RecordKey", record_key);
+            JBuilder.End();
+            var JSonStr = JBuilder.toString();
+
+            ajax_call_action(ACTION_URL_FOR_DELETE, JSonStr, clt_get_data_event);
+        }
+
+        //此处定义的数据列，必须与界面中table中定义的th中的列一致!
+        function clt_bind_gird_event(grid_data_source) {
+            $('#table1').DataTable({
+                //不显示右上角的搜索框
+                searching: false,
+                //不显示左上角的每页多少条下拉列表框
+                bLengthChange: false,
+                data: grid_data_source,
+                //destroy: true由于数据在更新或者删除以后DataTable的数据源发生了变化，重新加载绑定的时候，会出现“Cannot reinitialise DataTable”的错误，
+                //故在此强制销毁原来的DataTable，从而重新创建。
+                destroy: true,
+                columns: [
+                    { data: 'RecordKey' },
+                    { data: 'IntegerData' },
+                    { data: 'StringData' },
+                    { data: 'FloatData' },
+                    { data: 'DateTimeData' }
+                ]
+               ,
+                "columnDefs":
+                [
+                    //隐藏主键列。
+                    {
+                        "targets": [0],
+                        "visible": false
+                    },
+
+                  //{
+                  //    "targets": [5],
+                  //    "data": "RecordKey",
+                  //    "render": function (data, type, full) {
+                  //        //在数据两边必须加上双引号，特别是对于传递字符数据的时候。
+                  //        //将full的json数据转换成字符串，传入event方法中。
+                  //        //
+                  //        return "<button type='button' class='btn btn-info' style='width:80px' onclick='clt_add_data_event()'>New</button>";
+                  //    }
+                  //},
+
+
+                    //Define Edit Button
+                    {
+                        "targets": [5],
+                        "data": "RecordKey",
+                        "render": function (data, type, full) {
+                            //在数据两边必须加上双引号，特别是对于传递字符数据的时候。
+                            //将full的json数据转换成字符串，传入event方法中。
+                            //
+                            return "<button type='button' class='btn btn-info' style='width:80px' onclick='clt_edit_data_event(" + JSON.stringify(full) + ")'>Edit</button>";
+                        }
+                    },
+
+                    //Define Delete Button
+                    {
+                        "targets": [6],
+                        "data": "RecordKey",
+                        "render": function (data, type, full) {
+                            //在数据两边必须加上双引号，特别是对于传递字符数据的时候。
+                            return "<button type='button' class='btn btn-info' style='width:80px' onclick='clt_delete_data_event(&quot;" + data + "&quot;)'>Delete</button>";
+
+
+                        }
+                    }
+                ]
+            });
+        }
+
+
+    </script>
+</head>
+<body class="fixed-nav sticky-footer bg-dark" id="page-top">
+    <button id="btnShowDialog" type="button" class="btn btn-default" style="width:80px" data-toggle="modal" data-target="#myModal">Show Dialog</button>
+    <!-- 模态框 -->
+    <div class="modal fade" id="myModal">
+        <div class="modal-dialog">
+            <!--对话框的宽度，将会影响它的弹出位置。-->
+            <div class="modal-content" style="width:600px;">
+                <!-- 模态框头部 -->
+                <div class="modal-header">
+                    <h4 class="modal-title">Dialog Title</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+
+                <!-- 模态框主体 -->
+                <div class="modal-body">
+                    <!--begin your code here-->
+                    <!--=======================================================-->
+                    <table>
+                        <tr>
+                            <td>Int Input</td>
+                            <td><input id="cltIntegerData" type="text" class="form-control" /></td>
+                            <td>Str Input</td>
+                            <td><input id="cltStringData" type="text" class="form-control" /></td>
+                        </tr>
+                        <tr>
+                            <td>Flt Input</td>
+                            <td><input id="cltFloatData" type="text" class="form-control" /></td>
+                            <td>Date Input</td>
+                            <td>
+                                <input id="cltDateTimeData" type="text" class="form-control">
+                            </td>
+                        </tr>
+                        <tr style="display:none">
+                            <td colspan="10">
+                                <table>
+                                    <tr>
+                                        <td>
+                                            dialog reference data here.
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <input id="cltRecordKey" type="text" class="form-control" />
+                                            <input id="cltDialogFlag" type="text" class="form-control" />
+                                        </td>
+                                    </tr>
+                                </table>
+
+                            </td>
+                        </tr>
+                    </table>
+
+
+                    <!--=======================================================-->
+                </div>
+
+                <!-- 模态框底部 -->
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-info" data-dismiss="modal" style="width:80px" onclick="clt_model_submit_event()">Submit</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" style="width:80px">Close</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <button type="button" class="btn btn-info" style="width:80px" onclick="clt_add_data_event()">New</button>
+        <table id="table1" class="table table-striped">
+            <thead>
+                <tr>
+                    <th>RecordKey</th>
+                    <th>IntegerData</th>
+                    <th>StringData</th>
+                    <th>FloatData</th>
+                    <th>DateTimeData</th>
+                    <th style="width:50px">Edit</th>
+                    <th style="width:50px">Delete</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</body>
+
+</html>

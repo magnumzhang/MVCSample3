@@ -1,0 +1,69 @@
+﻿@using System.Text
+@using MVCSample3.Models
+@model MenuDataCollection
+
+<ul class="navbar-nav navbar-sidenav" id="exampleAccordion">
+    @foreach (MenuItemBase TopMenuItem in Model.RootMenuList)
+    {
+        StringBuilder myHTMLBuilder = new StringBuilder();
+        myHTMLBuilder.AppendLine("<li class=\"nav-item\" data-toggle=\"tooltip\" data-placement=\"right\">");
+        myHTMLBuilder.AppendFormat("<a class=\"nav-link nav-link-collapse collapsed\" data-toggle=\"collapse\" href=\"#{0}\" data-parent=\"#exampleAccordion\">", TopMenuItem.MenuID);
+        myHTMLBuilder.AppendFormat("<span class=\"nav-link-text\">{0}</span>", TopMenuItem.MenuText);
+        myHTMLBuilder.AppendLine("</a>");
+
+        List<MenuItemBase> SecondLevelMenuItemList = (from t in Model.MenuList where t.ParentID == TopMenuItem.MenuID select t).ToList();
+
+        myHTMLBuilder.AppendFormat("<ul class=\"sidenav-second-level collapse\" id=\"{0}\">", TopMenuItem.MenuID);
+        foreach (MenuItemBase SecondLevelMenuItem in SecondLevelMenuItemList)
+        {
+            List<MenuItemBase> ThirdLevelMenuItemList = (from t in Model.MenuList where t.ParentID == SecondLevelMenuItem.MenuID select t).ToList();
+            if (ThirdLevelMenuItemList.Count == 0)
+            {
+                myHTMLBuilder.AppendLine("<li>");
+
+                if (SecondLevelMenuItem is PageMenuItem)
+                {
+                    myHTMLBuilder.AppendFormat("<a href=\"#\">{0}</a>", SecondLevelMenuItem.MenuText);
+                }
+                else
+                {
+                    ActionMenuItem myActionMenuItem = (ActionMenuItem)SecondLevelMenuItem;
+                    Html.ActionLink(myActionMenuItem.MenuText, myActionMenuItem.ActionName, myActionMenuItem.ControllerName);
+                }
+
+                myHTMLBuilder.AppendLine("</li>");
+            }
+            else
+            {
+                myHTMLBuilder.AppendLine("<li>");
+                myHTMLBuilder.AppendFormat("<a class=\"nav-link-collapse collapsed\" data-toggle=\"collapse\" href=\"#{0}\">{1}</a>", SecondLevelMenuItem.MenuID, SecondLevelMenuItem.MenuText);
+                myHTMLBuilder.AppendFormat("<ul class=\"sidenav-third-level collapse\" id=\"{0}\">", SecondLevelMenuItem.MenuID);
+
+                foreach (MenuItemBase ThirdLevelMenuItem in ThirdLevelMenuItemList)
+                {
+                    myHTMLBuilder.AppendLine("<li>");
+
+                    if (ThirdLevelMenuItem is PageMenuItem)
+                    {
+                        myHTMLBuilder.AppendFormat("<a href=\"#\">{0}</a>", ThirdLevelMenuItem.MenuText);
+                    }
+                    else
+                    {
+                        ActionMenuItem myActionMenuItem = (ActionMenuItem)ThirdLevelMenuItem;
+                        Html.ActionLink(myActionMenuItem.MenuText, myActionMenuItem.ActionName, myActionMenuItem.ControllerName);
+                    }
+
+                    myHTMLBuilder.AppendLine("</li>");
+                }
+                myHTMLBuilder.AppendLine("</ul>");
+                myHTMLBuilder.AppendLine("</li>");
+            }
+        }
+        myHTMLBuilder.AppendLine("</ul>");
+        myHTMLBuilder.AppendLine("</li>");
+
+        string myHTMLStr = myHTMLBuilder.ToString();
+
+        @Html.Raw(myHTMLStr);
+    }
+</ul>
